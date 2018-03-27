@@ -18,7 +18,6 @@
  *	config.getServerName();
  */
 
-package res;
 
 import java.io.*;
 
@@ -40,28 +39,27 @@ public class Configuration extends DefaultHandler
     /**
      * @param File configurationFile - The name of the configuration file
      */ 
-    public Configuration(String configurationFile) throws ConfigurationException {
-	this.configurationFile = configurationFile;
+    public Configuration(String configurationFile) throws ConfigurationException 
+    {
+    	this.configurationFile = configurationFile;
 
-	map = new HashMap<String, String>();
+    	map = new HashMap<String, String>();
 
-	try {        
+    	try 
+    	{        
         	// Use the default (non-validating) parser
         	SAXParserFactory factory = SAXParserFactory.newInstance();
 
         	// Parse the input
         	SAXParser saxParser = factory.newSAXParser();
         	saxParser.parse( new File(configurationFile), this);
-	}
-	catch (javax.xml.parsers.ParserConfigurationException pce) {
-		throw new ConfigurationException("javax.xml.parsers.ParserConfigurationException");
-	}
-	catch (org.xml.sax.SAXException se) {
-		throw new ConfigurationException("org.xml.sax.SAXException");
-	}
-	catch (java.io.IOException ioe) {
-		throw new ConfigurationException("java.io.IOException");
-	}
+    	}
+    	catch (javax.xml.parsers.ParserConfigurationException pce) 
+    	{	throw new ConfigurationException("javax.xml.parsers.ParserConfigurationException");	}
+    	catch (org.xml.sax.SAXException se) 
+    	{	throw new ConfigurationException("org.xml.sax.SAXException");	}
+    	catch (java.io.IOException ioe) 
+    	{	throw new ConfigurationException("java.io.IOException");	}
     }
 
 
@@ -87,14 +85,16 @@ public class Configuration extends DefaultHandler
 	 * Get the attributes associated with this ELEMENT.
  	 * Attributes are name/value pairs and are stored by index.
 	 */
-        if (attrs != null) {
-            for (int i = 0; i < attrs.getLength(); i++) {
+        if (attrs != null) 
+        {
+            for (int i = 0; i < attrs.getLength(); i++) 
+            {
                 String aName = attrs.getLocalName(i); // Attr name 
                 if ("".equals(aName)) 
-			aName = attrs.getQName(i);
+                {	aName = attrs.getQName(i);	}
 
-		// map the element.attribute to its value
-		map.put(elementName+"."+aName,attrs.getValue(i));
+                // map the element.attribute to its value
+                map.put(elementName+"."+aName,attrs.getValue(i));
             }
         }
     }
@@ -102,22 +102,26 @@ public class Configuration extends DefaultHandler
 	// getter methods for mapped configuration values
 
 	/** Returns the location of the log file */
-	public String getLogFile() {
+	public String getLogFile()
+	{
 		return map.get("logfile.log");
 	}
 
 	/** Returns the location of the document base */
-	public String getDocumentRoot() {
+	public String getDocumentRoot() 
+	{
 		return map.get("context.documentRoot");
 	}
 
 	/** Returns the name of the default document */
-	public String getDefaultDocument() {
+	public String getDefaultDocument() 
+	{
 		return map.get("context.defaultDocument");
 	}
 
 	/** Returns the name of the server */
-	public String getServerName() {
+	public String getServerName() 
+	{
 		return map.get("webserver.title");
 	}
 }

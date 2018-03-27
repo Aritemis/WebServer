@@ -4,13 +4,14 @@
 
 import java.io.IOException;
 import java.net.ServerSocket;
+import java.util.Vector;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
 public class Server 
 {
 
-	public static final int DEFAULT_PORT = 6052;
+	public static final int DEFAULT_PORT = 8080;
 	private static final Executor executor = Executors.newCachedThreadPool();
 	
 	public static void main(String[] args) throws IOException 
@@ -29,9 +30,7 @@ public class Server
 		finally 
 		{
 			if (socket != null)
-			{
-				socket.close();
-			}
+			{	socket.close();	}
 		}
 	}
 }

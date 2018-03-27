@@ -3,7 +3,6 @@
  *
  */
 
-package res;
 
 public class ConfigurationException extends Exception
 {

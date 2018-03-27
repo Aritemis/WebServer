@@ -2,77 +2,171 @@
  *	@author Ariana Fairbanks
  */
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
+import java.io.BufferedReader;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.InetAddress;
+import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
 import java.net.Socket;
-import java.net.UnknownHostException;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Locale;
+import java.util.StringTokenizer;
+import java.util.TimeZone;
 
 public class Connection implements Runnable
 {
 	private Socket client;
-	private static final int BUFFER_SIZE = 1024;
+	private BufferedReader fromClient = null;
+	private DataOutputStream toClient = null;
+	private String logRequest = null;
 	
 	public Connection(Socket client) 
-	{
-		this.client = client;
-	}
+	{	this.client = client;	}
 
 	public void run() 
 	{ 
+		//TODO XML, maybe fixing client IP
 		try 
 		{
-			byte[] buffer = new byte[BUFFER_SIZE];
-			InputStream  fromClient = null;
-			OutputStream toClient = null;
+			fromClient = new BufferedReader(new InputStreamReader (client.getInputStream()));
+			toClient = new DataOutputStream(client.getOutputStream());
 			
-			try 
+			String clientRequest = fromClient.readLine();
+			StringTokenizer tokenizer = new StringTokenizer(clientRequest);
+			String method = tokenizer.nextToken();
+			String resource = tokenizer.nextToken();
+
+			logRequest = "\"" + clientRequest.trim() + "\" ";
+
+			if (method.equals("GET")) 
 			{
-				fromClient = new BufferedInputStream(client.getInputStream());
-				toClient = new BufferedOutputStream(client.getOutputStream());
-				int numBytes;
-				
-				
-				while ( (numBytes = fromClient.read(buffer)) != -1) 
-				{
-					String hostName = new String(buffer).trim();
-					System.out.println(hostName);
-					byte[] hostAddressBytes = null;
-					try
-					{
-						String hostAddress = InetAddress.getByName(hostName).getHostAddress() + "\n";
-						System.out.println("Address " + hostAddress);
-						hostAddressBytes = hostAddress.getBytes();
-					}
-					catch (UnknownHostException uhe) 
-					{
-						System.err.println("Unknown Host");
-						hostAddressBytes = "Unknown Host\n".getBytes();
-						System.out.println("reached catch");
-					}
-					finally
-					{
-						int length = hostAddressBytes.length;
-						toClient.write(hostAddressBytes, 0, length);
-						toClient.flush();	
-					}
-				}	
-	   		}
-			catch (IOException | NumberFormatException e) 
-			{	System.err.println(e);	}
-			finally 
-			{
-				buffer = null;
-				if (fromClient != null) 
-				{	fromClient.close();	}
-				if (toClient != null)
-				{	toClient.close();	}
+				String fileName = resource.replaceFirst("/", "");
+				fileName = decode(fileName);
+				if (resource.equals("/")) 
+				{	
+					fileName = "index.html";	
+				} 
+				if (new File(fileName).isFile())
+				{	
+					sendResponse(200, fileName, true);	
+				}
+				else 
+				{	
+					sendResponse(404, "", false);	
+				}
+			}
+			else
+			{	
+				sendResponse(405, "", false);	
 			}
 		}
 		catch (java.io.IOException ioe) 
 		{	System.err.println(ioe);	}
+
+	}
+	
+	public void sendResponse (int statusCode, String fileString, boolean isFile) throws IOException
+	{
+		String status = "HTTP/1.1 ";
+		String statusMessage = null;
+		String date = getServerTime();
+		String serverName = "Server: HTTP Server\r\n";
+		String contentType = "Content-Type: text/html\r\n";
+		String contentLength = null;
+		String fileName = null;
+		FileInputStream fileData = null;
+		int length = 0;
+
+		if (statusCode == 200)
+		{	
+			statusMessage = "200 OK\r\n";
+			status += statusMessage;
+		}
+		else if (statusCode == 404)
+		{	
+			statusMessage = "404 Not Found\r\n";
+			status += statusMessage;
+		}
+		else
+		{
+			statusMessage = "405 Method Not Allowed\r\n";
+			status += statusMessage;
+		}
+
+		if (isFile) 
+		{
+			fileName = fileString;
+			fileData = new FileInputStream(fileName);
+			length = fileData.available();
+			contentLength = "Content-Length: " + length + "\r\n";
+			if (!fileName.endsWith(".html"))
+			{	
+				if(fileName.endsWith(".gif"))
+				{	contentType = "Content-Type: image/gif\r\n";	}
+				else if(fileName.endsWith(".jpg"))
+				{	contentType = "Content-Type: image/jpeg\r\n";	}
+				else if(fileName.endsWith(".jpg"))
+				{	contentType = "Content-Type: image/jpeg\r\n";	}
+				else if(fileName.endsWith(".png"))
+				{	contentType = "Content-Type: image/png\r\n";	}
+				else if(fileName.endsWith(".txt"))
+				{	contentType = "Content-Type: text/plain\r\n";	}
+			}
+		}
+		else 
+		{
+			fileString = "<html><title>HTTP Server</title><body>" + statusMessage + "</body></html>";
+			length = fileString.length();
+			contentLength = "Content-Length: " + length + "\r\n";
+		}
+
+		System.out.println(client.getInetAddress().getHostAddress() + " [" + date + "] " + logRequest + statusCode + " " + length + "\n");
+		toClient.writeBytes(status);
+		toClient.writeBytes(date);
+		toClient.writeBytes(serverName);
+		toClient.writeBytes(contentType);
+		toClient.writeBytes(contentLength);
+		toClient.writeBytes("Connection: close\r\n");
+		toClient.writeBytes("\r\n");
+
+		if (isFile) 
+		{	sendFile(fileData, toClient);	}
+		else 
+		{	toClient.writeBytes(fileString);	}
+		toClient.close();
+		fromClient.close();
+	}
+	
+	public void sendFile (FileInputStream fileData, DataOutputStream out) throws IOException 
+	{
+		byte[] buffer = new byte[1024] ;
+		int bytesRead;
+
+		while ((bytesRead = fileData.read(buffer)) != -1 ) 
+		{	out.write(buffer, 0, bytesRead);	}
+		fileData.close();
+	}
+	
+	private String getServerTime() 
+	{
+	    Calendar calendar = Calendar.getInstance();
+	    SimpleDateFormat dateFormat = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z", Locale.US);
+	    dateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
+	    return dateFormat.format(calendar.getTime());
+	}
+	
+	private String decode(String value) 
+	{
+		String result = "";
+		try
+		{	result = URLDecoder.decode(value, StandardCharsets.UTF_8.toString());	}
+		catch(UnsupportedEncodingException e)
+		{	System.out.println("Something went wrong.");	}
+	    return result;
 	}
 }

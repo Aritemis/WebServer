@@ -6,8 +6,10 @@ import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.Socket;
 import java.net.URLDecoder;
@@ -21,12 +23,17 @@ import java.util.TimeZone;
 public class Connection implements Runnable
 {
 	private Socket client;
+	private Configuration configFile;
 	private BufferedReader fromClient = null;
 	private DataOutputStream toClient = null;
 	private String logRequest = null;
+	private boolean isAFile = false;
 	
-	public Connection(Socket client) 
-	{	this.client = client;	}
+	public Connection(Socket client, Configuration configFile) 
+	{	
+		this.client = client;
+		this.configFile = configFile;
+	}
 
 	public void run() 
 	{ 
@@ -45,14 +52,30 @@ public class Connection implements Runnable
 
 			if (method.equals("GET")) 
 			{
-				String fileName = resource.replaceFirst("/", "");
-				fileName = decode(fileName);
+				String fileName = resource;//.replaceFirst("/", "");
+				fileName = configFile.getDocumentRoot() + decode(fileName);
 				if (resource.equals("/")) 
 				{	
-					fileName = "index.html";	
+					fileName = configFile.getDefaultDocument();	
 				} 
 				if (new File(fileName).isFile())
 				{	
+					sendResponse(200, fileName, true);	
+				}
+				else if(fileName.equals(configFile.getDefaultDocument()))
+				{
+					File newDefault = new File(fileName);
+					OutputStream outputStream = null;
+					try 
+				    {
+				        outputStream = new FileOutputStream(newDefault);
+				        String newFileContents = "<html><title>" + configFile.getServerName() + "</title><body>This is my default web page.</body></html>";
+				        int length = newFileContents.length();
+				        outputStream.write(newFileContents.getBytes(), 0, length);
+				        outputStream.flush();
+				    }
+				    finally 
+				    {	outputStream.close();	}
 					sendResponse(200, fileName, true);	
 				}
 				else 
@@ -75,7 +98,7 @@ public class Connection implements Runnable
 		String status = "HTTP/1.1 ";
 		String statusMessage = null;
 		String date = getServerTime();
-		String serverName = "Server: HTTP Server\r\n";
+		String serverName = "Server: " + configFile.getServerName() +"\r\n";
 		String contentType = "Content-Type: text/html\r\n";
 		String contentLength = null;
 		String fileName = null;
@@ -125,7 +148,22 @@ public class Connection implements Runnable
 			contentLength = "Content-Length: " + length + "\r\n";
 		}
 
-		System.out.println(client.getInetAddress().getHostAddress() + " [" + date + "] " + logRequest + statusCode + " " + length + "\n");
+		String logString = client.getInetAddress().getHostAddress() + " [" + date + "] " + logRequest + statusCode + " " + length + "\n";
+		System.out.println(logString);
+
+		File newDefault = new File(configFile.getDocumentRoot() + configFile.getLogFile());
+		OutputStream outputStream = null;
+		try 
+	    {
+	        outputStream = new FileOutputStream(newDefault);
+	        String newFileContents = logString;
+	        int logFileLength = newFileContents.length();
+	        outputStream.write(newFileContents.getBytes(), 0, logFileLength);
+	        outputStream.flush();
+	    }
+	    finally 
+	    {	outputStream.close();	}
+		
 		toClient.writeBytes(status);
 		toClient.writeBytes(date);
 		toClient.writeBytes(serverName);

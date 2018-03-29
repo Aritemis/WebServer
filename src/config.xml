@@ -1,0 +1,22 @@
+<?xml version='1.0'?>
+
+<!-- WEB SERVER META DATA -->
+<webserver
+    title="A Webserver"
+    date="March 2018"
+    author="Ariana Fairbanks"
+>
+
+<!-- DEFAULT DOCUMENTS -->
+<!-- macOS style -->
+<context defaultDocument="C:/web-server/docs/index.html"></context> 
+
+<!-- DOCUMENT ROOT -->
+<!-- Windows style -->
+<context documentRoot="C:/web-server/docs/"></context>
+
+<!-- LOG FILE -->
+<!-- macOS / Linux style -->
+<logfile log="log.txt"></logfile> 
+
+</webserver>

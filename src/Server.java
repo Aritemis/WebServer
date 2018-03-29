@@ -14,15 +14,17 @@ public class Server
 	public static final int DEFAULT_PORT = 8080;
 	private static final Executor executor = Executors.newCachedThreadPool();
 	
-	public static void main(String[] args) throws IOException 
+	public static void main(String[] args) throws IOException, ConfigurationException 
 	{
+		String location = args[0];
+		Configuration configFile = new Configuration(location);
 		ServerSocket socket = null;
 		try 
 		{
 			socket = new ServerSocket(DEFAULT_PORT);
 			while (true) 
 			{
-				Runnable task = new Connection(socket.accept());
+				Runnable task = new Connection(socket.accept(), configFile);
 				executor.execute(task);
 			}
 		}

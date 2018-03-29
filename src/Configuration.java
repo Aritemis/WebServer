@@ -59,7 +59,10 @@ public class Configuration extends DefaultHandler
     	catch (org.xml.sax.SAXException se) 
     	{	throw new ConfigurationException("org.xml.sax.SAXException");	}
     	catch (java.io.IOException ioe) 
-    	{	throw new ConfigurationException("java.io.IOException");	}
+    	{	
+    		ioe.printStackTrace();
+    		//throw new ConfigurationException("java.io.IOException");	
+    	}
     }
 
 

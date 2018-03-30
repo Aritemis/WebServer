@@ -27,7 +27,6 @@ public class Connection implements Runnable
 	private BufferedReader fromClient = null;
 	private DataOutputStream toClient = null;
 	private String logRequest = null;
-	private boolean isAFile = false;
 	
 	public Connection(Socket client, Configuration configFile) 
 	{	
@@ -37,7 +36,6 @@ public class Connection implements Runnable
 
 	public void run() 
 	{ 
-		//TODO XML, maybe fixing client IP
 		try 
 		{
 			fromClient = new BufferedReader(new InputStreamReader (client.getInputStream()));
@@ -148,21 +146,31 @@ public class Connection implements Runnable
 			contentLength = "Content-Length: " + length + "\r\n";
 		}
 
-		String logString = client.getInetAddress().getHostAddress() + " [" + date + "] " + logRequest + statusCode + " " + length + "\n";
+		String logString = client.getInetAddress().getHostAddress() + " [" + date + "] " + logRequest + statusCode + " " + length + "\r\n\n";
 		System.out.println(logString);
 
-		File newDefault = new File(configFile.getDocumentRoot() + configFile.getLogFile());
+		File logFile = new File(configFile.getDocumentRoot() + configFile.getLogFile());
 		OutputStream outputStream = null;
 		try 
 	    {
-	        outputStream = new FileOutputStream(newDefault);
+	        if(logFile.isFile())
+	        {
+	        	outputStream = new FileOutputStream(logFile, true);
+	        }
+	        else
+	        {
+	        	outputStream = new FileOutputStream(logFile);
+	        }
 	        String newFileContents = logString;
 	        int logFileLength = newFileContents.length();
 	        outputStream.write(newFileContents.getBytes(), 0, logFileLength);
 	        outputStream.flush();
 	    }
 	    finally 
-	    {	outputStream.close();	}
+	    {	
+	    	if(outputStream != null)
+	    	{	outputStream.close();	}
+	    }
 		
 		toClient.writeBytes(status);
 		toClient.writeBytes(date);

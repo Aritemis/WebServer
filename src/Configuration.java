@@ -18,23 +18,20 @@
  *	config.getServerName();
  */
 
-
 import java.io.*;
 
 import org.xml.sax.*;
 import org.xml.sax.helpers.DefaultHandler;
-
 import javax.xml.parsers.SAXParserFactory;
-import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
-
 import java.util.Map;
 import java.util.HashMap;
 
 public class Configuration extends DefaultHandler
 {
     private Map<String, String>  map;
-    private String configurationFile;
+    @SuppressWarnings("unused")
+	private String configurationFile;
 
     /**
      * @param File configurationFile - The name of the configuration file

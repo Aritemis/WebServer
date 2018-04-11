@@ -47,6 +47,7 @@ public class Connection implements Runnable
 			String resource = tokenizer.nextToken();
 
 			logRequest = "\"" + clientRequest.trim() + "\" ";
+			System.out.println(logRequest);
 
 			if (method.equals("GET")) 
 			{
